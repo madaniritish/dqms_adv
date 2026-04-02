@@ -31,13 +31,13 @@ connectDB().then(() => {
   const autoSeed = String(process.env.AUTO_SEED_DEV || 'true').toLowerCase() === 'true';
   const usingMemory = String(process.env.DB_MODE || '').toLowerCase() === 'memory';
 
-  // If we're running on in-memory Mongo (no MongoDB installed),
-  // seed the *current* DB so login works immediately.
+  // Seed the database if it's empty so the app is always ready to use.
   const maybeSeed = async () => {
-    if (!isDev || !autoSeed || !usingMemory) return;
     const res = await seedDatabase({ force: false });
     if (res.seeded) {
-      console.log('🌱 Auto-seeded dev data (in-memory DB).');
+      console.log('🌱 Database seeded with initial data (users and doctors).');
+      console.log('   Note: This only happens when the database is empty.');
+      console.log('📋 Test Credentials:');
       console.log(`   Student: ${res.credentials.student.email} / ${res.credentials.student.password}`);
       console.log(`   Staff:   ${res.credentials.staff.email} / ${res.credentials.staff.password}`);
       console.log(`   Doctor:  ${res.credentials.doctor.email} / ${res.credentials.doctor.password}`);
