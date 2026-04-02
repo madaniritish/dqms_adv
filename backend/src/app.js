@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
+const { corsOriginCallback } = require('./config/corsOrigin');
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -16,25 +17,8 @@ const app = express();
 // Security middleware
 app.use(helmet());
 app.use(mongoSanitize()); // Prevent NoSQL injection
-const isDev = (process.env.NODE_ENV || 'development') === 'development';
-const configuredOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
-  .split(',')
-  .map((s) => s.trim())
-  .filter(Boolean);
-
 app.use(cors({
-  origin: (origin, cb) => {
-    // Allow non-browser clients (Postman/curl) and same-origin/no-origin calls
-    if (!origin) return cb(null, true);
-
-    // Allow explicitly configured origins
-    if (configuredOrigins.includes(origin)) return cb(null, true);
-
-    // Dev convenience: allow any localhost port (Vite may shift ports if busy)
-    if (isDev && /^http:\/\/localhost:\d+$/.test(origin)) return cb(null, true);
-
-    return cb(new Error(`CORS blocked origin: ${origin}`));
-  },
+  origin: corsOriginCallback,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
