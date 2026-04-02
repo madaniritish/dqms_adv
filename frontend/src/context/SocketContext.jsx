@@ -10,11 +10,12 @@ export const SocketProvider = ({ children }) => {
   const socketRef = useRef(null)
   const [queueUpdate, setQueueUpdate] = useState(null)
   const [connected, setConnected] = useState(false)
+  const socketUrl = import.meta.env.VITE_SOCKET_URL || '/'
 
   useEffect(() => {
     if (!token || !user) return
 
-    const socket = io('/', {
+    const socket = io(socketUrl, {
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,
@@ -67,7 +68,7 @@ export const SocketProvider = ({ children }) => {
       socket.disconnect()
       setConnected(false)
     }
-  }, [token, user])
+  }, [token, user, socketUrl])
 
   const emit = (event, data) => {
     if (socketRef.current?.connected) {
