@@ -1,0 +1,12 @@
+{
+  "name": "dqms-root",
+  "version": "1.0.0",
+  "description": "Digital Queue Management System — NIT Warangal",
+  "scripts": {
+    "backend": "cd backend && npm run dev",
+    "frontend": "cd frontend && npm run dev",
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "seed": "cd backend && npm run seed"
+  },
+  "private": true
+}
