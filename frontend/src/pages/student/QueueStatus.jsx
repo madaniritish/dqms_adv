@@ -16,6 +16,7 @@ export default function QueueStatus() {
   const [loading, setLoading] = useState(true)
   const [cancelling, setCancelling] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+  const [, setNowTick] = useState(0)
 
   const fetchStatus = async () => {
     try {
@@ -27,6 +28,11 @@ export default function QueueStatus() {
 
   useEffect(() => { fetchStatus() }, [])
   useEffect(() => { if (queueUpdate) fetchStatus() }, [queueUpdate])
+  useEffect(() => {
+    // Re-render periodically so "Remaining" countdown updates even without socket events.
+    const id = setInterval(() => setNowTick((t) => t + 1), 30000)
+    return () => clearInterval(id)
+  }, [])
 
   const handleCancel = async () => {
     setCancelling(true)

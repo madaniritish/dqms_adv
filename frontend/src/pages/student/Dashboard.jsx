@@ -12,6 +12,7 @@ export default function StudentDashboard() {
   const { connected, queueUpdate } = useSocket()
   const [status, setStatus] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [, setNowTick] = useState(0)
 
   const fetchStatus = async () => {
     try {
@@ -26,6 +27,11 @@ export default function StudentDashboard() {
 
   useEffect(() => { fetchStatus() }, [])
   useEffect(() => { if (queueUpdate) fetchStatus() }, [queueUpdate])
+  useEffect(() => {
+    // Re-render periodically so "Remaining" countdown updates even without socket events.
+    const id = setInterval(() => setNowTick((t) => t + 1), 30000)
+    return () => clearInterval(id)
+  }, [])
 
   const appt = status?.appointment
   const minutesUntilSlot = getMinutesUntil(appt?.date, appt?.timeSlot)
