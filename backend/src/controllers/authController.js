@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const AuditLog = require('../models/AuditLog');
+const Doctor = require('../models/Doctor');
 
 const signToken = (user) => {
   return jwt.sign(
@@ -68,7 +69,7 @@ exports.login = async (req, res) => {
 // Student self-signup (durable storage via MongoDB)
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, rollNumber, department } = req.body;
+    const { name, email, password, rollNumber, department, role } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ success: false, message: 'Please provide name, email, and password.' });
@@ -80,8 +81,10 @@ exports.register = async (req, res) => {
 
     const normalizedEmail = String(email).toLowerCase().trim();
 
-    // Only allow student signup from this endpoint.
-    const normalizedRole = 'student';
+    const normalizedRole = String(role || 'student').toLowerCase();
+    if (!['student', 'staff', 'doctor'].includes(normalizedRole)) {
+      return res.status(400).json({ success: false, message: 'Invalid role.' });
+    }
 
     const existing = await User.findOne({ email: normalizedEmail });
     if (existing) {
@@ -93,9 +96,24 @@ exports.register = async (req, res) => {
       email: normalizedEmail,
       passwordHash: String(password),
       role: normalizedRole,
-      rollNumber: rollNumber ? String(rollNumber).trim() : undefined,
-      department: department ? String(department).trim() : undefined,
+      rollNumber: normalizedRole === 'student' ? (rollNumber ? String(rollNumber).trim() : undefined) : undefined,
+      department: normalizedRole === 'student' ? (department ? String(department).trim() : undefined) : undefined,
     });
+
+    // If a doctor account is created, create a minimal Doctor profile
+    // so that doctor dashboard endpoints work correctly.
+    if (normalizedRole === 'doctor') {
+      await Doctor.create({
+        userId: user._id,
+        name: user.name,
+        specialization: 'General Medicine',
+        qualification: '',
+        roomNumber: '',
+        availableSlots: [],
+        maxPatientsPerDay: 40,
+        slotDurationMin: 12,
+      });
+    }
 
     return res.status(201).json({
       success: true,

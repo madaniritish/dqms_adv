@@ -64,7 +64,6 @@ export default function MoveSlot() {
           <ul className="text-amber-700 text-xs space-y-1 list-disc list-inside">
             <li>You can only move to a <strong>later</strong> time slot</li>
             <li>Changes not allowed within <strong>30 minutes</strong> of current slot</li>
-            <li>Maximum <strong>2 changes</strong> per appointment</li>
           </ul>
         </div>
 
@@ -76,7 +75,6 @@ export default function MoveSlot() {
               <div className="text-gray-400">→</div>
               <div className="text-3xl font-black text-primary-600">{selected || '?'}</div>
             </div>
-            <p className="text-xs text-gray-400 mt-2">Changes used: {activeAppt.slotChangeCount || 0}/2</p>
           </div>
         )}
 

@@ -7,6 +7,7 @@ export default function Signup() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [role, setRole] = useState('student')
   const [rollNumber, setRollNumber] = useState('')
   const [department, setDepartment] = useState('')
   const [loading, setLoading] = useState(false)
@@ -22,7 +23,16 @@ export default function Signup() {
 
     setLoading(true)
     try {
-      await authAPI.register({ name, email: email.trim(), password, rollNumber: rollNumber.trim(), department: department.trim() })
+      const payload = {
+        name,
+        email: email.trim(),
+        password,
+        role,
+        rollNumber: role === 'student' ? rollNumber.trim() : undefined,
+        department: role === 'student' ? department.trim() : undefined,
+      }
+
+      await authAPI.register(payload)
       toast.success('Account created. Please sign in.')
       navigate('/login')
     } catch (err) {
@@ -46,14 +56,29 @@ export default function Signup() {
             <span className="text-nitw-blue font-black text-2xl">NW</span>
           </div>
           <h1 className="text-3xl font-bold text-white">NITW Healthcare</h1>
-          <p className="text-blue-300 mt-1">Create your student account</p>
+          <p className="text-blue-300 mt-1">Create your account</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <h2 className="text-xl font-bold text-gray-900 mb-1">Sign Up</h2>
-          <p className="text-gray-500 text-sm mb-6">Only student accounts are supported for signup.</p>
+          <p className="text-gray-500 text-sm mb-6">Choose your role and sign up.</p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label htmlFor="role" className="label">Role</label>
+              <select
+                id="role"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                className="input-field"
+                disabled={loading}
+              >
+                <option value="student">Student</option>
+                <option value="staff">Staff</option>
+                <option value="doctor">Doctor</option>
+              </select>
+            </div>
+
             <div>
               <label htmlFor="name" className="label">Full Name</label>
               <input
@@ -95,7 +120,8 @@ export default function Signup() {
               />
             </div>
 
-            <div>
+            {role === 'student' && (
+              <div>
               <label htmlFor="rollNumber" className="label">Roll Number</label>
               <input
                 id="rollNumber"
@@ -107,9 +133,11 @@ export default function Signup() {
                 placeholder="e.g. 23CS1001"
                 disabled={loading}
               />
-            </div>
+              </div>
+            )}
 
-            <div>
+            {role === 'student' && (
+              <div>
               <label htmlFor="department" className="label">Department</label>
               <input
                 id="department"
@@ -121,7 +149,8 @@ export default function Signup() {
                 placeholder="Computer Science"
                 disabled={loading}
               />
-            </div>
+              </div>
+            )}
 
             <button type="submit" className="btn-primary w-full py-3 text-base" disabled={loading}>
               {loading ? <><div className="spinner" />Creating...</> : 'Create Account →'}

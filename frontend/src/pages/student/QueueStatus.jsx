@@ -6,6 +6,7 @@ import { queueAPI } from '../../services/api'
 import Navbar from '../../components/Navbar'
 import StatusBadge from '../../components/StatusBadge'
 import toast from 'react-hot-toast'
+import { getMinutesUntil } from '../../utils/time'
 
 export default function QueueStatus() {
   const { user } = useAuth()
@@ -49,6 +50,7 @@ export default function QueueStatus() {
   )
 
   const appt = status?.appointment
+  const minutesUntilSlot = getMinutesUntil(appt?.date, appt?.timeSlot)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -89,8 +91,8 @@ export default function QueueStatus() {
                 <p className="stat-value text-2xl">{appt.patientsAhead}</p>
               </div>
               <div className="stat-card text-center">
-                <p className="stat-label">Wait</p>
-                <p className="stat-value text-2xl text-amber-600">{appt.estimatedWaitMin}m</p>
+                <p className="stat-label">Remaining</p>
+                <p className="stat-value text-2xl text-amber-600">{minutesUntilSlot ?? 0}m</p>
               </div>
               <div className="stat-card text-center">
                 <p className="stat-label">Slot</p>

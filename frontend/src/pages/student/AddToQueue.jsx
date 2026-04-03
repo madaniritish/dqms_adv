@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import { queueAPI, timetableAPI } from '../../services/api'
 import Navbar from '../../components/Navbar'
 import toast from 'react-hot-toast'
+import { getMinutesUntil } from '../../utils/time'
 
 export default function AddToQueue() {
   const { user } = useAuth()
@@ -59,6 +60,7 @@ export default function AddToQueue() {
   const doctor = doctors.find(d => d._id === selectedDoctor)
 
   if (confirmed) {
+    const minutesUntilSlot = getMinutesUntil(confirmed?.date, confirmed?.timeSlot)
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
@@ -75,7 +77,7 @@ export default function AddToQueue() {
                 ['Date', confirmed.date],
                 ['Time Slot', confirmed.timeSlot],
                 ['Queue Position', `#${confirmed.queuePosition}`],
-                ['Est. Wait', `~${confirmed.estimatedWaitMin} minutes`],
+                ['Remaining', `${minutesUntilSlot ?? 0} minutes`],
                 ['Status', confirmed.status],
               ].map(([k, v]) => (
                 <div key={k} className="flex justify-between text-sm">

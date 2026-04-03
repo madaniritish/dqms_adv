@@ -5,6 +5,7 @@ import { useSocket } from '../../context/SocketContext'
 import { queueAPI } from '../../services/api'
 import Navbar from '../../components/Navbar'
 import StatusBadge from '../../components/StatusBadge'
+import { getMinutesUntil } from '../../utils/time'
 
 export default function StudentDashboard() {
   const { user } = useAuth()
@@ -27,6 +28,7 @@ export default function StudentDashboard() {
   useEffect(() => { if (queueUpdate) fetchStatus() }, [queueUpdate])
 
   const appt = status?.appointment
+  const minutesUntilSlot = getMinutesUntil(appt?.date, appt?.timeSlot)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -70,8 +72,8 @@ export default function StudentDashboard() {
                 <p className="stat-value text-primary-700">#{appt.queuePosition}</p>
               </div>
               <div className="stat-card bg-amber-50 border-amber-100">
-                <p className="stat-label text-amber-600">Est. Wait</p>
-                <p className="stat-value text-amber-700">{appt.estimatedWaitMin}m</p>
+                <p className="stat-label text-amber-600">Remaining</p>
+                <p className="stat-value text-amber-700">{minutesUntilSlot ?? 0}m</p>
               </div>
               <div className="stat-card">
                 <p className="stat-label">Ahead of You</p>
