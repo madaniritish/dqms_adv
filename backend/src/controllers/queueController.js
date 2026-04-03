@@ -16,16 +16,19 @@ const {
   CLOSING_MIN,
   CUTOFF_MIN_BEFORE_CLOSE,
   NOSHOW_WAIT_MIN,
+  CLINIC_TZ_OFFSET_MIN,
 } = require('../config/constants');
 
 // Convert stored {date: YYYY-MM-DD, timeSlot: HH:MM} to a Date.
-// Note: both server and frontend treat this as "local server time" for cutoff comparisons.
+// We interpret HH:MM as "clinic local time" and convert to UTC epoch for comparisons.
 const toSlotDateTime = (dateStr, timeSlot) => {
   if (!dateStr || !timeSlot) return null;
   const [y, m, d] = String(dateStr).split('-').map(Number);
   const [hh, mm] = String(timeSlot).split(':').map(Number);
   if (!y || !m || !d || Number.isNaN(hh) || Number.isNaN(mm)) return null;
-  return new Date(y, m - 1, d, hh, mm);
+  const utcMs = Date.UTC(y, m - 1, d, hh, mm, 0, 0);
+  const offsetMs = CLINIC_TZ_OFFSET_MIN * 60 * 1000;
+  return new Date(utcMs - offsetMs);
 };
 
 // Auto-mark overdue appointments as NoShow.
@@ -303,17 +306,18 @@ exports.moveSlot = async (req, res) => {
     if (newSlot <= appointment.timeSlot)
       return res.status(400).json({ success: false, message: 'Can only move to a later time slot.' });
 
-    const now = new Date();
-    const [y, m, d] = appointment.date.split('-').map(Number);
-    const [sh, sm] = appointment.timeSlot.split(':').map(Number);
-    const slotTime = new Date(y, m - 1, d, sh, sm);
-    if (now.getTime() >= slotTime.getTime()) {
+    const nowMs = Date.now();
+    const slotTime = toSlotDateTime(appointment.date, appointment.timeSlot);
+    if (!slotTime) {
+      return res.status(400).json({ success: false, message: 'Invalid appointment time.' });
+    }
+    if (nowMs >= slotTime.getTime()) {
       return res.status(400).json({
         success: false,
         message: 'Appointment time has passed. It will be marked as No-Show and moved to History.',
       });
     }
-    if ((slotTime - now) / 60000 < MOVE_SLOT_CUTOFF_MIN)
+    if ((slotTime.getTime() - nowMs) / 60000 < MOVE_SLOT_CUTOFF_MIN)
       return res.status(400).json({ success: false, message: 'Cannot change slot within 30 minutes of appointment.' });
 
     const taken = await getTakenSlots(appointment.date, appointment.doctorId);
@@ -354,17 +358,18 @@ exports.cancelAppointment = async (req, res) => {
     if (appointment.studentId.toString() !== req.user._id.toString() && req.user.role !== 'staff')
       return res.status(403).json({ success: false, message: 'Not authorized to cancel this appointment.' });
 
-    const now = new Date();
-    const [y, m, d] = appointment.date.split('-').map(Number);
-    const [sh, sm] = appointment.timeSlot.split(':').map(Number);
-    const slotTime = new Date(y, m - 1, d, sh, sm);
-    if (now.getTime() >= slotTime.getTime()) {
+    const nowMs = Date.now();
+    const slotTime = toSlotDateTime(appointment.date, appointment.timeSlot);
+    if (!slotTime) {
+      return res.status(400).json({ success: false, message: 'Invalid appointment time.' });
+    }
+    if (nowMs >= slotTime.getTime()) {
       return res.status(400).json({
         success: false,
         message: 'Appointment time has passed. It will be marked as No-Show and moved to History.',
       });
     }
-    if ((slotTime - now) / 60000 < CANCEL_CUTOFF_MIN)
+    if ((slotTime.getTime() - nowMs) / 60000 < CANCEL_CUTOFF_MIN)
       return res.status(400).json({ success: false, message: 'Cannot cancel within 15 minutes of appointment.' });
 
     appointment.status = APPOINTMENT_STATUS.CANCELLED;

@@ -12,6 +12,9 @@ module.exports = {
   SESSION_TIMEOUT_SEC: parseInt(process.env.SESSION_TIMEOUT) || 1800,
   QUEUE_START_HOUR: 9,
   QUEUE_START_MIN: 0,
+  // Clinic timezone used for interpreting stored {date: YYYY-MM-DD, timeSlot: HH:MM}.
+  // NIT Warangal -> Asia/Kolkata -> UTC+5:30 => 330 minutes.
+  CLINIC_TZ_OFFSET_MIN: parseInt(process.env.CLINIC_TZ_OFFSET_MIN) || 330,
 
   NOTIFICATION_TYPES: {
     SECOND_NEXT: 'Second-Next',
