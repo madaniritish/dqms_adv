@@ -69,6 +69,17 @@ export default function Navbar() {
 
           {/* Right */}
           <div className="flex items-center gap-3">
+            {/* Emergency contacts quick link */}
+            <a
+              href="https://www.nitw.ac.in/page/?url=/EMERGENCY/ECN/"
+              target="_blank"
+              rel="noreferrer"
+              title="NITW Emergency Contacts"
+              className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-red-500/20 text-red-200 hover:bg-red-500/30 hover:text-white transition-colors"
+            >
+              🆘
+            </a>
+
             {/* Connection indicator */}
             <div className="flex items-center gap-1.5">
               <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
@@ -95,6 +106,14 @@ export default function Navbar() {
 
         {/* Mobile nav */}
         <div className="md:hidden flex gap-1 pb-2 overflow-x-auto">
+          <a
+            href="https://www.nitw.ac.in/page/?url=/EMERGENCY/ECN/"
+            target="_blank"
+            rel="noreferrer"
+            className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-red-100 bg-red-500/20 hover:bg-red-500/30"
+          >
+            🆘 Emergency Contacts
+          </a>
           {links.map(({ to, label, icon }) => (
             <Link
               key={to}
