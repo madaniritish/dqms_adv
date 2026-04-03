@@ -72,6 +72,19 @@ const appointmentSchema = new mongoose.Schema(
 appointmentSchema.index(
   { studentId: 1, date: 1, status: 1 },
   {
+    unique: true,
+    partialFilterExpression: {
+      status: { $in: ['Waiting', 'Second-Next', 'Next', 'InConsultation'] },
+    },
+  }
+);
+
+// Concurrency safety: prevent two active appointments from taking
+// the same doctor/date/time slot at the database level.
+appointmentSchema.index(
+  { doctorId: 1, date: 1, timeSlot: 1, status: 1 },
+  {
+    unique: true,
     partialFilterExpression: {
       status: { $in: ['Waiting', 'Second-Next', 'Next', 'InConsultation'] },
     },

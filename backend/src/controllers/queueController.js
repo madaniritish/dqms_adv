@@ -36,6 +36,8 @@ const getClinicDateStr = (nowMs) => {
   return new Date(nowMs + offsetMs).toISOString().split('T')[0];
 };
 
+const isDuplicateKeyError = (err) => err && err.code === 11000;
+
 // Auto-mark overdue appointments as NoShow.
 // This keeps Queue Status correct and moves missed appointments into History automatically.
 const autoMarkNoShowsForStudent = async (studentId) => {
@@ -205,16 +207,47 @@ exports.joinQueue = async (req, res) => {
 
     if (available.length === 0) return res.status(400).json({ success: false, message: 'No slots available. Please try another date.' });
 
-    const assignedSlot = available[0];
     const queue = await getOrCreateQueue(date, doctorId);
-    const queuePosition = (await Appointment.countDocuments({
-      doctorId, date, status: { $nin: ['Cancelled', 'NoShow', 'Completed'] },
-    })) + 1;
+    let appointment = null;
+    let assignedSlot = null;
+    let queuePosition = null;
 
-    const appointment = await Appointment.create({
-      studentId, doctorId, date, timeSlot: assignedSlot,
-      queuePosition, status: APPOINTMENT_STATUS.WAITING,
-    });
+    // Concurrency-safe reservation:
+    // try each currently available slot; if one collides due to another
+    // concurrent booking, move to the next free slot.
+    for (const candidateSlot of available) {
+      try {
+        assignedSlot = candidateSlot;
+        queuePosition = (await Appointment.countDocuments({
+          doctorId, date, status: { $nin: ['Cancelled', 'NoShow', 'Completed'] },
+        })) + 1;
+
+        appointment = await Appointment.create({
+          studentId, doctorId, date, timeSlot: candidateSlot,
+          queuePosition, status: APPOINTMENT_STATUS.WAITING,
+        });
+        break;
+      } catch (createErr) {
+        if (isDuplicateKeyError(createErr)) {
+          // Duplicate active slot (or active student/date collision) under concurrency.
+          // If it's a student/date collision, return conflict immediately.
+          const keyPattern = createErr.keyPattern || {};
+          if (keyPattern.studentId && keyPattern.date) {
+            return res.status(409).json({ success: false, message: 'You already have an active appointment for this date.' });
+          }
+          // Otherwise, slot collision: continue to next candidate slot.
+          continue;
+        }
+        throw createErr;
+      }
+    }
+
+    if (!appointment) {
+      return res.status(409).json({
+        success: false,
+        message: 'Slots were just booked by others. Please try again to get the latest available slot.',
+      });
+    }
 
     await Queue.findByIdAndUpdate(queue._id, {
       $push: { entries: appointment._id },
