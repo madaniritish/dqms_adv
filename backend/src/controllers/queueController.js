@@ -15,7 +15,49 @@ const {
   CLOSING_HOUR,
   CLOSING_MIN,
   CUTOFF_MIN_BEFORE_CLOSE,
+  NOSHOW_WAIT_MIN,
 } = require('../config/constants');
+
+// Convert stored {date: YYYY-MM-DD, timeSlot: HH:MM} to a Date.
+// Note: both server and frontend treat this as "local server time" for cutoff comparisons.
+const toSlotDateTime = (dateStr, timeSlot) => {
+  if (!dateStr || !timeSlot) return null;
+  const [y, m, d] = String(dateStr).split('-').map(Number);
+  const [hh, mm] = String(timeSlot).split(':').map(Number);
+  if (!y || !m || !d || Number.isNaN(hh) || Number.isNaN(mm)) return null;
+  return new Date(y, m - 1, d, hh, mm);
+};
+
+// Auto-mark overdue appointments as NoShow.
+// This keeps Queue Status correct and moves missed appointments into History automatically.
+const autoMarkNoShowsForStudent = async (studentId) => {
+  const now = new Date();
+
+  const overdueCandidates = await Appointment.find({
+    studentId,
+    status: { $in: ['Waiting', 'Second-Next', 'Next'] },
+  }).select('_id date timeSlot status');
+
+  if (!overdueCandidates || overdueCandidates.length === 0) return 0;
+
+  let marked = 0;
+  const graceMs = NOSHOW_WAIT_MIN * 60 * 1000;
+
+  for (const appt of overdueCandidates) {
+    const slotTime = toSlotDateTime(appt.date, appt.timeSlot);
+    if (!slotTime) continue;
+
+    if (now.getTime() >= slotTime.getTime() + graceMs) {
+      await Appointment.findByIdAndUpdate(appt._id, {
+        status: APPOINTMENT_STATUS.NO_SHOW,
+        noShowMarkedAt: new Date(),
+      });
+      marked += 1;
+    }
+  }
+
+  return marked;
+};
 
 // Helper: get or create queue for a date + doctor
 const getOrCreateQueue = async (date, doctorId) => {
@@ -180,6 +222,11 @@ exports.joinQueue = async (req, res) => {
 exports.getQueueStatus = async (req, res) => {
   try {
     const studentId = req.params.studentId;
+
+    // Keep status correct by marking overdue appointments as NoShow.
+    // Without this, old booked slots remain "active" forever.
+    await autoMarkNoShowsForStudent(studentId);
+
     const appointment = await Appointment.findOne({
       studentId, status: { $in: ['Waiting', 'Second-Next', 'Next', 'InConsultation'] },
     }).populate('doctorId', 'name specialization roomNumber').sort({ createdAt: -1 });
@@ -213,6 +260,10 @@ exports.getQueueStatus = async (req, res) => {
 exports.getHistory = async (req, res) => {
   try {
     const studentId = req.params.studentId;
+
+    // Ensure missed appointments appear as NoShow in History.
+    await autoMarkNoShowsForStudent(studentId);
+
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
     const fromDate = sixMonthsAgo.toISOString().split('T')[0];
@@ -256,6 +307,12 @@ exports.moveSlot = async (req, res) => {
     const [y, m, d] = appointment.date.split('-').map(Number);
     const [sh, sm] = appointment.timeSlot.split(':').map(Number);
     const slotTime = new Date(y, m - 1, d, sh, sm);
+    if (now.getTime() >= slotTime.getTime()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Appointment time has passed. It will be marked as No-Show and moved to History.',
+      });
+    }
     if ((slotTime - now) / 60000 < MOVE_SLOT_CUTOFF_MIN)
       return res.status(400).json({ success: false, message: 'Cannot change slot within 30 minutes of appointment.' });
 
@@ -301,6 +358,12 @@ exports.cancelAppointment = async (req, res) => {
     const [y, m, d] = appointment.date.split('-').map(Number);
     const [sh, sm] = appointment.timeSlot.split(':').map(Number);
     const slotTime = new Date(y, m - 1, d, sh, sm);
+    if (now.getTime() >= slotTime.getTime()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Appointment time has passed. It will be marked as No-Show and moved to History.',
+      });
+    }
     if ((slotTime - now) / 60000 < CANCEL_CUTOFF_MIN)
       return res.status(400).json({ success: false, message: 'Cannot cancel within 15 minutes of appointment.' });
 
