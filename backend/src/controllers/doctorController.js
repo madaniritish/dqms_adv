@@ -56,6 +56,31 @@ exports.getDoctorQueue = async (req, res) => {
   }
 };
 
+// GET /api/doctor/history
+exports.getDoctorHistory = async (req, res) => {
+  try {
+    const doctor = await Doctor.findOne({ userId: req.user._id });
+    if (!doctor) return res.status(404).json({ success: false, message: 'Doctor profile not found.' });
+
+    const limit = Math.min(parseInt(req.query.limit || '100', 10), 500);
+    const history = await Appointment.find({
+      doctorId: doctor._id,
+      status: { $in: ['Completed'] },
+    })
+      .populate('studentId', 'name rollNumber email')
+      .sort({ date: -1, timeSlot: -1 })
+      .limit(limit);
+
+    res.status(200).json({
+      success: true,
+      count: history.length,
+      appointments: history,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 // POST /api/doctor/next
 exports.callNextPatient = async (req, res) => {
   try {

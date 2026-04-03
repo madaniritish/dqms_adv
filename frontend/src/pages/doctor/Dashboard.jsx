@@ -8,13 +8,18 @@ import toast from 'react-hot-toast'
 export default function DoctorDashboard() {
   const { queueUpdate, connected } = useSocket()
   const [data, setData] = useState(null)
+  const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(true)
   const [calling, setCalling] = useState(false)
 
   const fetchQueue = async () => {
     try {
-      const res = await doctorAPI.queue()
-      setData(res.data)
+      const [queueRes, historyRes] = await Promise.all([
+        doctorAPI.queue(),
+        doctorAPI.history(),
+      ])
+      setData(queueRes.data)
+      setHistory(historyRes.data.appointments || [])
     } catch { setData(null) }
     finally { setLoading(false) }
   }
@@ -130,6 +135,35 @@ export default function DoctorDashboard() {
                   <div className="text-right">
                     <p className="font-mono text-gray-300">{p.timeSlot}</p>
                     <StatusBadge status={p.status} showDot />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* History (Reached/Completed) */}
+        <div className="space-y-3 pt-2">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-lg font-bold text-gray-200">Patient History</h2>
+            <span className="text-gray-400 text-sm">{history.length} completed</span>
+          </div>
+
+          {history.length === 0 ? (
+            <div className="bg-white/5 rounded-2xl p-8 text-center">
+              <p className="text-gray-400">No completed patient records yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+              {history.slice(0, 50).map((p) => (
+                <div key={p._id} className="bg-white/5 border border-white/10 rounded-xl p-3 flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-white">{p.studentId?.name || 'Student'}</p>
+                    <p className="text-xs text-gray-400">{p.studentId?.rollNumber || '—'} • {p.studentId?.email || '—'}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-300">{p.date} {p.timeSlot}</p>
+                    <StatusBadge status={p.status} />
                   </div>
                 </div>
               ))}

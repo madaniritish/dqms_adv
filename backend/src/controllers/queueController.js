@@ -346,7 +346,7 @@ exports.moveSlot = async (req, res) => {
       });
     }
     if ((slotTime.getTime() - nowMs) / 60000 < MOVE_SLOT_CUTOFF_MIN)
-      return res.status(400).json({ success: false, message: 'Cannot change slot within 30 minutes of appointment.' });
+      return res.status(400).json({ success: false, message: `Cannot change slot within ${MOVE_SLOT_CUTOFF_MIN} minutes of appointment.` });
 
     const taken = await getTakenSlots(appointment.date, appointment.doctorId);
     if (taken.includes(newSlot))
@@ -398,7 +398,7 @@ exports.cancelAppointment = async (req, res) => {
       });
     }
     if ((slotTime.getTime() - nowMs) / 60000 < CANCEL_CUTOFF_MIN)
-      return res.status(400).json({ success: false, message: 'Cannot cancel within 15 minutes of appointment.' });
+      return res.status(400).json({ success: false, message: `Cannot cancel within ${CANCEL_CUTOFF_MIN} minutes of appointment.` });
 
     appointment.status = APPOINTMENT_STATUS.CANCELLED;
     appointment.cancelledAt = new Date();

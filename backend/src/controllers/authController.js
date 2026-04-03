@@ -69,7 +69,7 @@ exports.login = async (req, res) => {
 // Student self-signup (durable storage via MongoDB)
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, rollNumber, department, role } = req.body;
+    const { name, email, password, rollNumber, department, role, specialization, qualification } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ success: false, message: 'Please provide name, email, and password.' });
@@ -84,6 +84,9 @@ exports.register = async (req, res) => {
     const normalizedRole = String(role || 'student').toLowerCase();
     if (!['student', 'staff', 'doctor'].includes(normalizedRole)) {
       return res.status(400).json({ success: false, message: 'Invalid role.' });
+    }
+    if (normalizedRole === 'doctor' && !String(specialization || '').trim()) {
+      return res.status(400).json({ success: false, message: 'Doctor specialization is required.' });
     }
 
     const existing = await User.findOne({ email: normalizedEmail });
@@ -106,8 +109,8 @@ exports.register = async (req, res) => {
       await Doctor.create({
         userId: user._id,
         name: user.name,
-        specialization: 'General Medicine',
-        qualification: '',
+        specialization: String(specialization).trim(),
+        qualification: String(qualification || '').trim(),
         roomNumber: '',
         availableSlots: [],
         maxPatientsPerDay: 40,

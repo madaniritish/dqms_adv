@@ -60,6 +60,14 @@ export default function EmergencyPage() {
         <div className="bg-red-50 border border-red-200 rounded-xl p-4">
           <p className="text-red-700 text-sm font-semibold">⚠️ Staff Action Required</p>
           <p className="text-red-600 text-xs mt-1">This action moves the patient to position #1, shifting all others down. An audit log entry will be created.</p>
+          <a
+            href="https://www.nitw.ac.in/page/?url=/EMERGENCY/ECN/"
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-red-700 hover:underline"
+          >
+            🆘 Emergency Contact Numbers (NITW)
+          </a>
         </div>
 
         <div className="card space-y-5">

@@ -63,7 +63,7 @@ export default function MoveSlot() {
           <p className="font-semibold text-amber-800 text-sm">📋 Rules</p>
           <ul className="text-amber-700 text-xs space-y-1 list-disc list-inside">
             <li>You can only move to a <strong>later</strong> time slot</li>
-            <li>Changes not allowed within <strong>30 minutes</strong> of current slot</li>
+            <li>Changes not allowed within <strong>5 minutes</strong> of current slot</li>
           </ul>
         </div>
 

@@ -57,6 +57,7 @@ export const staffAPI = {
 // Doctor
 export const doctorAPI = {
   queue: () => api.get('/doctor/queue'),
+  history: () => api.get('/doctor/history'),
   next: () => api.post('/doctor/next'),
 }
 

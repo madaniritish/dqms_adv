@@ -10,6 +10,8 @@ export default function Signup() {
   const [role, setRole] = useState('student')
   const [rollNumber, setRollNumber] = useState('')
   const [department, setDepartment] = useState('')
+  const [specialization, setSpecialization] = useState('')
+  const [qualification, setQualification] = useState('')
   const [loading, setLoading] = useState(false)
 
   const navigate = useNavigate()
@@ -18,6 +20,10 @@ export default function Signup() {
     e.preventDefault()
     if (!name || !email || !password) {
       toast.error('Please fill in all required fields.')
+      return
+    }
+    if (role === 'doctor' && !specialization.trim()) {
+      toast.error('Please enter doctor specialization.')
       return
     }
 
@@ -30,6 +36,8 @@ export default function Signup() {
         role,
         rollNumber: role === 'student' ? rollNumber.trim() : undefined,
         department: role === 'student' ? department.trim() : undefined,
+        specialization: role === 'doctor' ? specialization.trim() : undefined,
+        qualification: role === 'doctor' ? qualification.trim() : undefined,
       }
 
       await authAPI.register(payload)
@@ -149,6 +157,38 @@ export default function Signup() {
                 placeholder="Computer Science"
                 disabled={loading}
               />
+              </div>
+            )}
+
+            {role === 'doctor' && (
+              <div>
+                <label htmlFor="specialization" className="label">Specialization</label>
+                <input
+                  id="specialization"
+                  type="text"
+                  value={specialization}
+                  onChange={(e) => setSpecialization(e.target.value)}
+                  className="input-field"
+                  autoComplete="off"
+                  placeholder="e.g. Dentistry"
+                  disabled={loading}
+                />
+              </div>
+            )}
+
+            {role === 'doctor' && (
+              <div>
+                <label htmlFor="qualification" className="label">Qualification</label>
+                <input
+                  id="qualification"
+                  type="text"
+                  value={qualification}
+                  onChange={(e) => setQualification(e.target.value)}
+                  className="input-field"
+                  autoComplete="off"
+                  placeholder="e.g. BDS, MDS"
+                  disabled={loading}
+                />
               </div>
             )}
 
