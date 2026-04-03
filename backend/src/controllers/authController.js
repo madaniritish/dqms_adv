@@ -25,29 +25,14 @@ exports.login = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
 
-    // Check if account is locked
-    if (user.isLocked()) {
-      return res.status(403).json({
-        success: false,
-        message: `Account is locked due to too many failed attempts. Try again at ${new Date(user.lockedUntil).toLocaleTimeString()}.`,
-      });
-    }
-
     // Validate password
     const isValid = await user.comparePassword(password);
     if (!isValid) {
-      await user.incrementFailedLogins();
-      const remaining = 5 - user.failedLogins;
       return res.status(401).json({
         success: false,
-        message: remaining > 0
-          ? `Invalid credentials. ${remaining} attempt(s) remaining before lockout.`
-          : 'Account locked for 30 minutes due to too many failed attempts.',
+        message: 'Invalid email or password.',
       });
     }
-
-    // Reset failed logins on success
-    await user.resetFailedLogins();
 
     // Generate JWT
     const token = signToken(user);
@@ -76,6 +61,57 @@ exports.login = async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ success: false, message: 'Server error during login.' });
+  }
+};
+
+// POST /api/auth/register
+// Student self-signup (durable storage via MongoDB)
+exports.register = async (req, res) => {
+  try {
+    const { name, email, password, rollNumber, department } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, message: 'Please provide name, email, and password.' });
+    }
+
+    if (!password || password.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
+    }
+
+    const normalizedEmail = String(email).toLowerCase().trim();
+
+    // Only allow student signup from this endpoint.
+    const normalizedRole = 'student';
+
+    const existing = await User.findOne({ email: normalizedEmail });
+    if (existing) {
+      return res.status(409).json({ success: false, message: 'Email already registered.' });
+    }
+
+    const user = await User.create({
+      name: String(name).trim(),
+      email: normalizedEmail,
+      passwordHash: String(password),
+      role: normalizedRole,
+      rollNumber: rollNumber ? String(rollNumber).trim() : undefined,
+      department: department ? String(department).trim() : undefined,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Account created successfully.',
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        rollNumber: user.rollNumber,
+        department: user.department,
+      },
+    });
+  } catch (error) {
+    console.error('Register error:', error);
+    return res.status(500).json({ success: false, message: 'Server error during registration.' });
   }
 };
 

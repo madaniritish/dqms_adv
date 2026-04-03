@@ -95,6 +95,15 @@ export default function Login() {
             </button>
           </form>
 
+          <button
+            type="button"
+            onClick={() => navigate('/signup')}
+            className="mt-5 text-sm text-blue-700 hover:underline"
+            disabled={loading}
+          >
+            New here? Create an account
+          </button>
+
           {/* Info */}
           <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
             <p className="text-xs font-semibold text-blue-700 mb-2">Access by Role:</p>

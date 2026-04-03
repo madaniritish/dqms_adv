@@ -9,7 +9,6 @@ const {
   SLOT_DURATION_MIN,
   CANCEL_CUTOFF_MIN,
   MOVE_SLOT_CUTOFF_MIN,
-  MAX_SLOT_CHANGES,
   APPOINTMENT_STATUS,
   QUEUE_START_HOUR,
   QUEUE_START_MIN,
@@ -250,8 +249,6 @@ exports.moveSlot = async (req, res) => {
     const appointment = await Appointment.findById(appointmentId);
     if (!appointment) return res.status(404).json({ success: false, message: 'Appointment not found.' });
 
-    if (appointment.slotChangeCount >= MAX_SLOT_CHANGES)
-      return res.status(400).json({ success: false, message: 'Maximum 2 slot changes allowed.' });
     if (newSlot <= appointment.timeSlot)
       return res.status(400).json({ success: false, message: 'Can only move to a later time slot.' });
 

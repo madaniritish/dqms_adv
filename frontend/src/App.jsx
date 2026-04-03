@@ -15,6 +15,7 @@ import StaffDashboard from './pages/staff/Dashboard'
 import EmergencyPage from './pages/staff/Emergency'
 import NoShowPage from './pages/staff/NoShow'
 import DoctorDashboard from './pages/doctor/Dashboard'
+import Signup from './pages/Signup'
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading, isAuthenticated } = useAuth()
@@ -42,6 +43,7 @@ const RoleRedirect = () => {
 const AppRoutes = () => (
   <Routes>
     <Route path="/login" element={<Login />} />
+    <Route path="/signup" element={<Signup />} />
     <Route path="/" element={<RoleRedirect />} />
 
     {/* Student Routes */}

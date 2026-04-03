@@ -47,7 +47,6 @@ const appointmentSchema = new mongoose.Schema(
     slotChangeCount: {
       type: Number,
       default: 0,
-      max: [2, 'Maximum 2 slot changes allowed'],
     },
     isEmergency: {
       type: Boolean,
