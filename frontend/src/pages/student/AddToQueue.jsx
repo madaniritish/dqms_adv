@@ -4,14 +4,14 @@ import { useAuth } from '../../context/AuthContext'
 import { queueAPI, timetableAPI } from '../../services/api'
 import Navbar from '../../components/Navbar'
 import toast from 'react-hot-toast'
-import { getMinutesUntil } from '../../utils/time'
+import { addDaysToDateStr, getClinicTodayStr, getMinutesUntil } from '../../utils/time'
 
 export default function AddToQueue() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const today = new Date().toISOString().split('T')[0]
+  const clinicToday = getClinicTodayStr()
 
-  const [date, setDate] = useState(today)
+  const [date, setDate] = useState(clinicToday)
   const [doctors, setDoctors] = useState([])
   const [selectedDoctor, setSelectedDoctor] = useState('')
   const [slot, setSlot] = useState(null)
@@ -19,6 +19,7 @@ export default function AddToQueue() {
   const [confirmed, setConfirmed] = useState(null)
   const [loadingDoctors, setLoadingDoctors] = useState(false)
   const [loadingSlot, setLoadingSlot] = useState(false)
+  const [recommendNextDay, setRecommendNextDay] = useState(false)
 
   // Load doctors for the selected date
   useEffect(() => {
@@ -34,10 +35,24 @@ export default function AddToQueue() {
   useEffect(() => {
     if (!selectedDoctor || !date) { setSlot(null); return }
     setLoadingSlot(true)
+    setRecommendNextDay(false)
     queueAPI.slots(date, selectedDoctor)
       .then(res => {
         const available = res.data.slots || []
-        setSlot(available.length > 0 ? available[0] : null)
+        if (available.length > 0) {
+          setSlot(available[0])
+          setRecommendNextDay(false)
+          return
+        }
+
+        // If today has no future slots, recommend tomorrow.
+        if (String(date) === clinicToday) {
+          setSlot(null)
+          setRecommendNextDay(true)
+        } else {
+          setSlot(null)
+          setRecommendNextDay(false)
+        }
       })
       .catch(() => toast.error('Failed to load slots.'))
       .finally(() => setLoadingSlot(false))
@@ -113,7 +128,7 @@ export default function AddToQueue() {
               type="date"
               className="input-field"
               value={date}
-              min={today}
+                min={clinicToday}
               onChange={e => { setDate(e.target.value); setSelectedDoctor(''); setSlot(null) }}
             />
           </div>
@@ -161,6 +176,23 @@ export default function AddToQueue() {
                 <div className="bg-green-50 border-2 border-green-400 rounded-xl p-5 text-center">
                   <p className="text-4xl font-bold text-green-700">{slot}</p>
                   <p className="text-green-600 text-sm mt-1">First available slot on {date}</p>
+                </div>
+              ) : recommendNextDay ? (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center space-y-3">
+                  <p className="text-red-600 font-medium">No future slots available for today.</p>
+                  <p className="text-gray-600 text-sm">Please select a slot from the next day.</p>
+                  <button
+                    type="button"
+                    className="btn-secondary w-full"
+                    onClick={() => {
+                      const nextDate = addDaysToDateStr(clinicToday, 1)
+                      setDate(nextDate)
+                      setSlot(null)
+                      setRecommendNextDay(false)
+                    }}
+                  >
+                    Select Tomorrow
+                  </button>
                 </div>
               ) : (
                 <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center">

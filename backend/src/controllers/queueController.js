@@ -31,6 +31,11 @@ const toSlotDateTime = (dateStr, timeSlot) => {
   return new Date(utcMs - offsetMs);
 };
 
+const getClinicDateStr = (nowMs) => {
+  const offsetMs = CLINIC_TZ_OFFSET_MIN * 60 * 1000;
+  return new Date(nowMs + offsetMs).toISOString().split('T')[0];
+};
+
 // Auto-mark overdue appointments as NoShow.
 // This keeps Queue Status correct and moves missed appointments into History automatically.
 const autoMarkNoShowsForStudent = async (studentId) => {
@@ -142,6 +147,19 @@ exports.getAvailableSlots = async (req, res) => {
     const allSlots = generateSlots(doctor);
     const takenSlots = await getTakenSlots(date, doctorId);
     const available = allSlots.filter((s) => !takenSlots.includes(s));
+
+    // If the selected date is "today", only keep slots that are still in the future.
+    // This fixes the UI showing 9:00 even when it's already afternoon.
+    const nowMs = Date.now();
+    if (String(date) === getClinicDateStr(nowMs)) {
+      const filtered = available.filter((s) => {
+        const slotTime = toSlotDateTime(date, s);
+        return slotTime && nowMs < slotTime.getTime();
+      });
+      res.status(200).json({ success: true, slots: filtered, takenSlots, allSlots });
+      return;
+    }
+
     res.status(200).json({ success: true, slots: available, takenSlots, allSlots });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -174,7 +192,17 @@ exports.joinQueue = async (req, res) => {
     // BR-3: Next available slot
     const allSlots = generateSlots(doctor);
     const takenSlots = await getTakenSlots(date, doctorId);
-    const available = allSlots.filter((s) => !takenSlots.includes(s));
+    let available = allSlots.filter((s) => !takenSlots.includes(s));
+
+    // If joining for today's date, remove past slots so the assignment is the next future slot.
+    const nowMs = Date.now();
+    if (String(date) === getClinicDateStr(nowMs)) {
+      available = available.filter((s) => {
+        const slotTime = toSlotDateTime(date, s);
+        return slotTime && nowMs < slotTime.getTime();
+      });
+    }
+
     if (available.length === 0) return res.status(400).json({ success: false, message: 'No slots available. Please try another date.' });
 
     const assignedSlot = available[0];
